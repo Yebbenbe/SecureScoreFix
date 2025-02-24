@@ -14,3 +14,6 @@ Scripts for quickly addressing SecureScore
 - a more robust remediation than above, which checks for an existing rule (policy + assignment combo)
 - if rule exists, verifies config and assignment, fixes if needed
 - if no rule, creates one with same process as above
+
+# devcontainer
+ignore this, this was used so I could write this within GitHub Codespaces. ISn't needed.
