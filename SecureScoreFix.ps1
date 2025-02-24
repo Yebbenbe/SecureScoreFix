@@ -11,9 +11,9 @@ Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter t
 Connect-ExchangeOnline; 
 $tenant = (Get-OrganizationConfig).Identity
 Write-Host "Connected to tenant: $tenant"
-$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named (company) Standard Policy".  
+$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named `"(company) Standard Policy`""  
 # Get tenant domains, get just the DomainName
-$domains = Get-AcceptedDomain | Select-Object DomainName; $domains 
+$domains = (Get-AcceptedDomain).DomainName
 
 # Enables Mailtips
 Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
@@ -28,20 +28,19 @@ Write-Host "Additional storage providers disabled on OWA"
 $policyName = "$MSP Standard Safe Links policy";  
 $params = @{    # hash table of values (like a dict)
 Name =  $policyName
-EnableForEmail = $true
-EnableForTeams = $true
-EnableForOFficeApps = $true
+EnableSafeLinksForEmail = $true
+EnableSafeLinksForTeams = $true
+EnableSafeLinksForOFfice = $true
 TrackClicks = $True
-DoNotAllowClickThrough = $true
-DoNotDisplayBranding = $true
+AllowClickThrough = $false
+EnableOrganizationBranding = $false
 }
-# New-SafeLinksPolicy -Name $policyName -EnableforEmail $true
 New-SafeLinksPolicy @params
 # Creates a rule assigning all owned domains to this policy
-New-SafeLinksRule -Name "$policyName - All Domains" SafeLinksPolicy $policyName -RecipientDomainIs $domains
+New-SafeLinksRule -Name "$policyName - All Domains" -SafeLinksPolicy $policyName -RecipientDomainIs $domains
 # Assigns final elements of policy
-Set-SafeLinksPolicy -Identity $policyName -EnableForInternalEmail $true -EnableRealTimeScanning $true -WaitForURLScanning $true
-Write-Host "Recommended SafeLinks policy created, assigned to all domains - $policyName
+Set-SafeLinksPolicy -Identity $policyName -EnableForInternalSenders $true -ScanUrls $true -DeliverMessageAfterScan $true
+Write-Host "Recommended SafeLinks policy created, assigned to all domains - $policyName"
 <###############################################>
 # Safe Attachments. Creates a custom Safe Attachments policy and assigns the domain. 
 $policyName = "$MSP Standard Safe Attachments Policy"
