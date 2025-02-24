@@ -1,5 +1,7 @@
 # Will not work in the ISE as that does not support interactive login
 # For non-federated environments using separate admin accounts for each tenant
+# creates new, approved policy and assigns all domains to it - if custom rules are configured, they will need to be revised after
+# requires a Defender P1 and Entra P1 license (these can simply be on admin account)
 # Maintenance items: Recommmendation date(7)
 
 # Connects to ExchangeOnlineManagement
