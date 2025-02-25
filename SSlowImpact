@@ -1,0 +1,154 @@
+# Low-impact SecureScore fixes
+$tenant = $null
+$MSP = $null
+$domains = @()
+$policyName = $null
+$user = $env:USERNAME  # For desktop shortcuts to email filter review
+
+Write-Host "This script is used for non-federated MSP environments (environments with separate admin accounts). Recommendations are dated 2/21/25."
+Write-Host "This version of the script will make only low-impact changes."  
+Start-Sleep -Seconds 2
+Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start." 
+Connect-ExchangeOnline; 
+$tenant = (Get-OrganizationConfig).Identity
+Write-Host "Connected to tenant: $tenant"
+$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named `"(company) Standard Policy`""  
+# Get tenant domains, get just the DomainName
+$domains = (Get-AcceptedDomain).DomainName
+# Enables Mailtips
+Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
+Write-Host "MailTips enabled"
+# Disables additional storage on OWA
+Set-OwaMailboxPolicy -Identity OwaMailboxPolicy-Default -AdditionalStorageProvidersAvailable $false; 
+Write-Host "Additional storage providers disabled on OWA"
+
+# Quarantine Notifcation
+New-QuarantinePolicy -Identity "Allow Quarantine Release Requests" -EndUserQuarantinePermissionsValue 139 -AdminDisplayName 'Allows users to see previews and request release, sends notif to user'
+-ESNEnabled $true -QuarantineRetentionDays 30
+
+# Safe Links Policy ###################################################
+$policyName = "$MSP Standard Safe Links policy";  
+$params = @{    # hash table of values (like a dict)
+Name =  $policyName
+EnableSafeLinksForEmail = $true
+EnableSafeLinksForTeams = $true
+EnableSafeLinksForOFfice = $true
+TrackClicks = $True
+AllowClickThrough = $false
+EnableOrganizationBranding = $false
+AdminDisplayName = "generated via PowerShell script."
+}
+New-SafeLinksPolicy @params
+# Creates a rule assigning all owned domains to this policy
+New-SafeLinksRule -Name "$policyName - All Domains" -SafeLinksPolicy $policyName -RecipientDomainIs $domains
+# Assigns final elements of policy
+Set-SafeLinksPolicy -Identity $policyName -EnableForInternalSenders $true -ScanUrls $true -DeliverMessageAfterScan $true
+Write-Host "Recommended SafeLinks policy created, assigned to all domains - $policyName"
+
+# Malware Filter Policy ###############################################
+#Low-impact params
+$params = @{
+    QuarantineTag = 'AdminOnlyAccessPolicy'
+    ZapEnabled = $true
+    EnableFileFilter = $true
+    FileTypeAction = "Reject"  # action to take on malicious emails
+    FileTypes = "ade", "adp", "app", "asp", "asx", "bas", "bat", "chm", "cmd", "com", "cpl", "crt", "csh", "der", "exe", "fxp", "gadget", "hlp", "hta", "inf", "ins", "isp", "its", "jar", "jse", "ksh", "lnk", "mad", "maf", "mag", "mam", "maq", "mar", "mas", "mat", "mau", "mav", "maw", "mda", "mdb", "mde", "mdt", "mdw", "mdz", "msc", "msh", "msh1", "msh2", "mshxml", "msh1xml", "msh2xml", "msi", "msp", "mst", "ops", "pcd", "pif", "pl", "prf", "prg", "ps1", "ps1xml", "ps2", "ps2xml", "psc1", "psc2", "reg", "scf", "scr", "sct", "shb", "shs", "url", "vb", "vbe", "vbs", "vsmacros", "vss", "vst", "vsw", "ws", "wsc", "wsf", "wsh", "xnk"
+}
+$malwareFilterRule = Get-MalwareFilterRule | Where-Object { $_.State -eq 'Enabled' }
+if ($malwareFilterRules.Count -gt 0) {
+    foreach ($rule in $malwareFilterRules) {
+        # get the associated MalwareFilterPolicy
+        $policyName = $rule.MalwareFilterPolicy
+        $malwareFilterPolicy = Get-MalwareFilterPolicy -Identity $policyName
+        # update param
+        Set-MalwareFilterPolicy -Identity $policyName @params
+        Write-Output "MalwareFilterPolicy '$policyName' updated successfully."
+    }
+    } else {
+        New-MalwareFilterPolicy -Name "iSpire Standard Policy" @params
+        New-MalwareFilterRule -Name "$policyName - All Domains" -MalwareFilterPolicy $policyName -RecipientDomainIs $domains
+        Write-Output "MalwareFilterPolicy iSpire Standard Policy created successfully"
+    }
+
+
+# Safe Attachments Policy ################################################
+$params = {
+    Name = $policyName
+    Action = "Block"
+    QuarantineFlag = "AdminOnlyAccessPolicy"
+    EnableRedirect = $false
+    AdminDisplayName = "generated via PowerShell script."
+}
+$safeAttachmentRules = Get-SafeAttachmentRule | Where-Object { $_.State -eq 'Enabled' }
+# Check if any rules are found
+if ($safeAttachmentRules.Count -gt 0) {
+    foreach ($rule in $safeAttachmentRules) {
+        # Get the associated SafeAttachmentPolicy
+        $policyName = $rule.SafeAttachmentPolicy
+        $safeAttachmentPolicy = Get-SafeAttachmentPolicy -Identity $policyName
+        # Update parameters on the SafeAttachmentPolicy using the hashtable
+        Set-SafeAttachmentPolicy -Identity $policyName @params
+        Write-Output "SafeAttachmentPolicy '$policyName' updated successfully."
+    }
+} else {
+    # Create a new SafeAttachmentPolicy if no rules are found
+    $policyName = "Ispire Standard Safe Attachments Policy"
+    New-SafeAttachmentPolicy -Name $policyName @params
+    New-SafeAttachmentsRule -Name "$policyName - All Domains" -SafeAttachmentsPolicy $policyName -RecipientDomainIs $domains
+    }
+
+
+# Anti Spam INBOUND Policy ######################################################
+params = @{
+    QuarantineRetentionPeriod = 30
+    SpamAction = "MoveToJmf"
+    BulkSpamAction = "MoveToJmf"
+    PhishSpamAction = "MoveToJmf"
+    BulkThreshold = 6
+    ZapEnabled = $true
+    InlineSafetyTipsEnabled = $true
+    PhishZapEnable = "True" 
+    HighConfidencePhishAction = "Quarantine"
+    HighConfidenceSpamAction = "Quarantine" 
+    HighConfidenceSpamQuarantineTag = "AdminOnlyAccessPolicy"
+    HighConfidencePhishQuarantineTag = "AdminOnlyAccessPolicy"
+}
+$AntiSpamRules = Get-HostedContentFilterRule | Where-Object ($_.State -eq 'Enabled')
+if ($AntiSpamRules.Count -gt 0) {
+    foreach ($rule in $AntiSpamRules) {
+        $policyName = $rule.HostedContentFilterPolicy
+        $AntiSpamPolicy = Get-HostedContentFilterPolicy -Identity @policyName
+        Set-HostedContentFilterPolicy -Identity $policyName @params
+        Write-Output "Anti Spam Filter Policy '$policyName' updated successfully" 
+    }
+} else {
+    #Create a new Anti-Spam policy
+    $policyName = "ispire Standard Spam Policy"
+    New-HostedContentFilterPolicy -Name $policyName $params
+    New-HosteddContentFilterRule -Name "$policyName - All Domains" -HostedContentFilterPolicy $policyName -RecipientDomainIs $domains
+    }
+
+# Anti Spam OUTBOUND Policy ##################################3
+    $params = @{
+    RecipientLimitExternalPerHour = 500
+    RecipientLimitInternalPerHour = 500
+    RecipientLimitPerDay = 1000
+    ActionWhenThresholdReached = 'BlockUser'
+    NotifyOutboundSpamRecipients = 'o365security@ispire.ca' 
+    NotifyOutboundSpam = $true
+    AutoForwardingMode = 'Off'
+    }
+$AntiSpamRules = Get-HostedOutboundSpamFilterRule | Where-Object ($_.State -eq 'Enabled')
+if ($AntiSpamRules.Count -gt 0) {
+    foreach ($rule in $AntiSpamRules) {
+        $policyName = $rule.HostedOutboundSpamFilterPolicy
+        $AntiSpamPolicy = Get-HostedOutboundSpamFilterPolicy -Identity @policyName
+        Set-HostedOutboundSpamFilterPolicy -Identity $policyName @params
+        Write-Output "Anti Spam Outbound Policy '$policyName' updated successfully" 
+    }
+} else {
+    #Create a new Anti-Spam policy
+    $policyName = "ispire Standard Outbound Spam Policy"
+    New-HostedOutboundSpamFilterPolicy -Name $policyName $params
+    New-HostedOutboundSpamFilterRule -Name "$policyName - All Domains" -HostedContentFilterPolicy $policyName -RecipientDomainIs $domains
+    }
