@@ -6,9 +6,11 @@
 #############################################
 # Global vars
 $urls = @{
-    "Quarantine" = "https://security.microsoft.com/quarantine"
+    "Quarantine (recommend review)" = "https://security.microsoft.com/quarantine"
     "Impersonation Insight" = "https://security.microsoft.com/impersonationinsight"
     "Spoof Intelligence (recommend review)" = "https://security.microsoft.com/spoofintelligence"
+    "Bulk Senders Insight" = "https://security.microsoft.com/senderinsights"
+  
 }
 $tenant = $null
 $MSP = $null
@@ -24,10 +26,9 @@ Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter t
 Connect-ExchangeOnline; 
 $tenant = (Get-OrganizationConfig).Identity
 Write-Host "Connected to tenant: $tenant"
-$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named `"(company) Standard Policy`""  
-# Get tenant domains, get just the DomainName
 $domains = (Get-AcceptedDomain).DomainName
-# Enables Mailtips
+$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named `"(company) Standard Policy`""  
+#############################################
 Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
 Write-Host "MailTips enabled"
 
@@ -47,6 +48,7 @@ EnableSafeLinksForOFfice = $true
 TrackClicks = $True
 AllowClickThrough = $false
 EnableOrganizationBranding = $false
+AdminDisplayName = "generated via PowerShell script."
 }
 New-SafeLinksPolicy @params
 # Creates a rule assigning all owned domains to this policy
@@ -64,6 +66,7 @@ $params = @{
     Action = "Block"
     QuarantineFlag = "AdminOnlyAccessPolicy"
     EnableRedirect = $false
+    AdminDisplayName = "generated via PowerShell script."
 }
 # create new policy
 New-SafeAttachmentPolicy @params
@@ -83,6 +86,7 @@ Name = $policyName
     ExternalSenderAdminAddress = 'o365security@ispire.ca'
     QuarantineTag = 'AdminOnlyAccessPolicy'
     EnableFileFilter = $true
+    AdminDisplayName = "generated via PowerShell script."
     FileTypeAction = "Reject"  # action to take on malicious emails
     FileTypes = "ade", "adp", "app", "asp", "asx", "bas", "bat", "chm", "cmd", "com", "cpl", "crt", "csh", "der", "exe", "fxp", "gadget", "hlp", "hta", "inf", "ins", "isp", "its", "jar", "jse", "ksh", "lnk", "mad", "maf", "mag", "mam", "maq", "mar", "mas", "mat", "mau", "mav", "maw", "mda", "mdb", "mde", "mdt", "mdw", "mdz", "msc", "msh", "msh1", "msh2", "mshxml", "msh1xml", "msh2xml", "msi", "msp", "mst", "ops", "pcd", "pif", "pl", "prf", "prg", "ps1", "ps1xml", "ps2", "ps2xml", "psc1", "psc2", "reg", "scf", "scr", "sct", "shb", "shs", "url", "vb", "vbe", "vbs", "vsmacros", "vss", "vst", "vsw", "ws", "wsc", "wsf", "wsh", "xnk"
 }
@@ -93,7 +97,6 @@ New-MalwareFilterPolicy @params
 New-MalwareFilterRule -Name "$policyName - All Domains" -MalwareFilterPolicy $policyName -RecipientDomainIs $domains
 Write-Host "Malware Filter policy created and assigned to all domains: $policyName"
 
-############################################
 ############################################
 # Anti-phish 
 $execs = Read-Host -Prompt "Please enter any critical executive/management person's emails for impersonation protection, separated by commas "  
@@ -130,7 +133,7 @@ $params = @{
     }
 
 New-AntiPhishPolicy @params
-New-AntiPhishRule -Name "$policyName - All Domains" -MalwareFilterPolicy $policyName -RecipientDomainIs $domains
+New-AntiPhishRule -Name "$policyName - All Domains" -AntiPhishPolicy $policyName -RecipientDomainIs $domains
 Read-Host -Prompt "Anti-Phishing policy created. Spoof and Impersonation protection have been enabled for the folowing users: $execs. Spoof Intelligence Insights and Quarantine should`
 both be monitored to maintain email deliverability. Links will be placed on your desktop to these. Press Enter to continue process."
 
