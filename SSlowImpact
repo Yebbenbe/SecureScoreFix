@@ -1,34 +1,70 @@
 # Low-impact SecureScore fixes
+<# Fixes
+
+
+#>
+Import-Module .\DomainSelector.psm1
+$logFile = Join-Path $PSScriptRoot "SecureScore_log.txt"
+Import-Module .\fileLog.psm1
+
 $tenant = $null
 $MSP = $null
 $domains = @()
 $policyName = $null
 $user = $env:USERNAME  # For desktop shortcuts to email filter review
+function p {Start-Sleep -Seconds 1}
+Write-Host "This script is used for non-federated MSP environments (environments with separate admin accounts). Recommendations are dated 2/21/25."; &p
+Write-Host "This version of the script will make only low-impact changes.";  &p
+$MSP = Read-Host -Prompt "Enter a company/label for policy naming. Policies will be named `"[company]`'s Standard Policy`"" 
+Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start."
 
-Write-Host "This script is used for non-federated MSP environments (environments with separate admin accounts). Recommendations are dated 2/21/25."
-Write-Host "This version of the script will make only low-impact changes."  
-Start-Sleep -Seconds 2
-Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start." 
-Connect-ExchangeOnline; 
+Connect-ExchangeOnline;
 $tenant = (Get-OrganizationConfig).Identity
-Write-Host "Connected to tenant: $tenant"
-$MSP = Read-Host -Prompt "Enter the MSP/Management company name. Policies will be named `"(company) Standard Policy`""  
-# Get tenant domains, get just the DomainName
-$domains = (Get-AcceptedDomain).DomainName
+$logFile = Join-Path $PSScriptRoot "$tenant-log.txt"
+$global:logFile = $logFile
+logMe -level "Start" -message "Connected to $tenant"
+$domainsAll = (Get-AcceptedDomain).DomainName
+Write-Host "You have connected to tenant $tenant, with the following domains: $($domainsAll -join ', ')"; &p #subexpression operator, anon string of domains
+#$domains = $inputDomains -split ",\s*"  # regex for , with zero or more spaces. \s = any whitespace character,  * = zero or more.
+Write-Host "You will be asked what domains to apply these policies to. These may be applied to all domains or only domains with email."; &p
+Write-Host "Input one at a time."; &p
+$domains = Select-Domains -availableDomains $domainsAll
+logMe -level "1" -message "Domains selected : $domains"
+<# moved to it's own module
+$domains = @()
+while ($true) {
+    $userInput = Read-Host "Enter a domain (or type 'next' to finish)"
+    if ($userInput -eq "next") {
+        break
+    }
+    # If the user types 'all', select all domains
+    if ($userInput -eq "all") {
+        $domains = $domainsAll  # Add all domains
+        Write-Host "You have selected all the domains."
+        break  # Exit loop after selecting all domains
+    }
+    if ($domainsAll -contains $userInput) {
+        $domains += $userInput
+        Write-Host "$userInput has been added."
+    } else {
+        Write-Host "Invalid domain. Please enter a valid domain from the list."
+    }
+} #>
+
 # Enables Mailtips
 Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
-Write-Host "MailTips enabled"
+logme -level 2 -message 'Mailtips enabled'
 # Disables additional storage on OWA
 Set-OwaMailboxPolicy -Identity OwaMailboxPolicy-Default -AdditionalStorageProvidersAvailable $false; 
-Write-Host "Additional storage providers disabled on OWA"
+logme -level 3 -message 'Additional storage providers limited'
 
 # Quarantine Notifcation
 New-QuarantinePolicy -Identity "Allow Quarantine Release Requests" -EndUserQuarantinePermissionsValue 139 -AdminDisplayName 'Allows users to see previews and request release, sends notif to user'
--ESNEnabled $true -QuarantineRetentionDays 30
+-ESNEnabled $true -QuarantineRetentionDays 30 logme -level 4 -message "Quarantine Policy created `'Allow Quarantine Release Requests`'"
 
 # Safe Links Policy ###################################################
 $policyName = "$MSP Standard Safe Links policy";  
-$params = @{    # hash table of values (like a dict)
+$params = @{  
 Name =  $policyName
 EnableSafeLinksForEmail = $true
 EnableSafeLinksForTeams = $true
@@ -43,12 +79,12 @@ New-SafeLinksPolicy @params
 New-SafeLinksRule -Name "$policyName - All Domains" -SafeLinksPolicy $policyName -RecipientDomainIs $domains
 # Assigns final elements of policy
 Set-SafeLinksPolicy -Identity $policyName -EnableForInternalSenders $true -ScanUrls $true -DeliverMessageAfterScan $true
-Write-Host "Recommended SafeLinks policy created, assigned to all domains - $policyName"
+logMe -level 5 -message "Recommended SafeLinks policy created, assigned to all domains - $policyName"
 
 # Malware Filter Policy ###############################################
 #Low-impact params
 $params = @{
-    QuarantineTag = 'AdminOnlyAccessPolicy'
+    QuarantineTag = 'Allow Quarantine Release Requests'
     ZapEnabled = $true
     EnableFileFilter = $true
     FileTypeAction = "Reject"  # action to take on malicious emails
@@ -75,7 +111,7 @@ if ($malwareFilterRules.Count -gt 0) {
 $params = {
     Name = $policyName
     Action = "Block"
-    QuarantineFlag = "AdminOnlyAccessPolicy"
+    QuarantineFlag = "Allow Quarantine Release Requests"
     EnableRedirect = $false
     AdminDisplayName = "generated via PowerShell script."
 }
@@ -110,8 +146,8 @@ params = @{
     PhishZapEnable = "True" 
     HighConfidencePhishAction = "Quarantine"
     HighConfidenceSpamAction = "Quarantine" 
-    HighConfidenceSpamQuarantineTag = "AdminOnlyAccessPolicy"
-    HighConfidencePhishQuarantineTag = "AdminOnlyAccessPolicy"
+    HighConfidenceSpamQuarantineTag = "Allow Quarantine Release Requests"
+    HighConfidencePhishQuarantineTag = "Allow Quarantine Release Requests"
 }
 $AntiSpamRules = Get-HostedContentFilterRule | Where-Object ($_.State -eq 'Enabled')
 if ($AntiSpamRules.Count -gt 0) {
