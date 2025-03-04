@@ -1,9 +1,8 @@
-[main]: SecureScoreLowImpact.ps1
-[author]: Yebbenbe
-[verified_date]: "March 4 2025"
-[mods]: "fileLog.psm1, DomainSelector.psm1"
-[WIP]: "status: WIP"
-[comp]: "status: Completed"
+MAIN: SecureScoreLowImpact.ps1
+AUTHOR: Yebbenbe
+LAST VERIFIED: "March 4 2025"
+REQUIRED MODS: fileLog.psm1, DomainSelector.psm1
+
 
 # SecureScoreFix
 Scripts for quickly addressing SecureScore. [WIP]
