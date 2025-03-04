@@ -17,7 +17,7 @@ Write-Host "This script is used for non-federated MSP environments (environments
 Write-Host "This version of the script will make only low-impact changes.";  &p
 $MSP = Read-Host -Prompt "Enter a company/label for policy naming. Policies will be named `"[company]`'s Standard Policy`"" 
 Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start."
-
+# Setup connection log entry 1
 Connect-ExchangeOnline;
 $tenant = (Get-OrganizationConfig).Identity
 $logFile = Join-Path $PSScriptRoot "$tenant-log.txt"
@@ -51,18 +51,20 @@ while ($true) {
     }
 } #>
 
-# Enables Mailtips
+# Enables Mailtips Log Entry 2
 Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
-logme -level 2 -message 'Mailtips enabled'
-# Disables additional storage on OWA
+logMe -level 2 -message 'Mailtips enabled'
+
+# Disables additional storage on OWA Log Entry 3
 Set-OwaMailboxPolicy -Identity OwaMailboxPolicy-Default -AdditionalStorageProvidersAvailable $false; 
-logme -level 3 -message 'Additional storage providers limited'
+logMe -level 3 -message 'Additional storage providers limited'
 
-# Quarantine Notifcation
+# Quarantine Notifcation Log Entry 4
 New-QuarantinePolicy -Identity "Allow Quarantine Release Requests" -EndUserQuarantinePermissionsValue 139 -AdminDisplayName 'Allows users to see previews and request release, sends notif to user'
--ESNEnabled $true -QuarantineRetentionDays 30 logme -level 4 -message "Quarantine Policy created `'Allow Quarantine Release Requests`'"
+-ESNEnabled $true -QuarantineRetentionDays 30 
+logMe -level 4 -message "Quarantine Policy created `'Allow Quarantine Release Requests`'"
 
-# Safe Links Policy ###################################################
+# Safe Links Policy Log Entry 5 ###################################################
 $policyName = "$MSP Standard Safe Links policy";  
 $params = @{  
 Name =  $policyName
@@ -80,8 +82,9 @@ New-SafeLinksRule -Name "$policyName - All Domains" -SafeLinksPolicy $policyName
 # Assigns final elements of policy
 Set-SafeLinksPolicy -Identity $policyName -EnableForInternalSenders $true -ScanUrls $true -DeliverMessageAfterScan $true
 logMe -level 5 -message "Recommended SafeLinks policy created, assigned to all domains - $policyName"
+logMe -level 5 -message "Settings: $params"
 
-# Malware Filter Policy ###############################################
+# Malware Filter Policy Log Level 6 ###############################################
 #Low-impact params
 $params = @{
     QuarantineTag = 'Allow Quarantine Release Requests'
@@ -98,18 +101,21 @@ if ($malwareFilterRules.Count -gt 0) {
         $malwareFilterPolicy = Get-MalwareFilterPolicy -Identity $policyName
         # update param
         Set-MalwareFilterPolicy -Identity $policyName @params
-        Write-Output "MalwareFilterPolicy '$policyName' updated successfully."
+        Set-MalwareFilterRule -Identity $rule.Name -RecipientDomainIs $domains
+        logMe -level 6 -message "MalwareFilterPolicy '$policyName' updated successfully."
+        logMe -level 6 -message "Settings: $params"
     }
     } else {
+        $policyName = "$MSP Standard Anti-Malware Policy"
         New-MalwareFilterPolicy -Name "iSpire Standard Policy" @params
         New-MalwareFilterRule -Name "$policyName - All Domains" -MalwareFilterPolicy $policyName -RecipientDomainIs $domains
-        Write-Output "MalwareFilterPolicy iSpire Standard Policy created successfully"
+        logMe -level 6 -message "Recommended Malware Policy created, assigned to all domains - $policyName"
+        logMe -level 6 -message "Settings: $params"
     }
 
 
-# Safe Attachments Policy ################################################
+# Safe Attachments Policy Log level 7 ################################################
 $params = {
-    Name = $policyName
     Action = "Block"
     QuarantineFlag = "Allow Quarantine Release Requests"
     EnableRedirect = $false
@@ -124,17 +130,18 @@ if ($safeAttachmentRules.Count -gt 0) {
         $safeAttachmentPolicy = Get-SafeAttachmentPolicy -Identity $policyName
         # Update parameters on the SafeAttachmentPolicy using the hashtable
         Set-SafeAttachmentPolicy -Identity $policyName @params
-        Write-Output "SafeAttachmentPolicy '$policyName' updated successfully."
+        logMe -level 7 -message "Safe Attachments policy updated and assigned to domains - $policyName"
+        logMe -level 7 -message "Settings: $params"
     }
 } else {
     # Create a new SafeAttachmentPolicy if no rules are found
-    $policyName = "Ispire Standard Safe Attachments Policy"
+    $policyName = "$MSP Standard Safe Attachments Policy"
     New-SafeAttachmentPolicy -Name $policyName @params
     New-SafeAttachmentsRule -Name "$policyName - All Domains" -SafeAttachmentsPolicy $policyName -RecipientDomainIs $domains
     }
 
 
-# Anti Spam INBOUND Policy ######################################################
+# Anti Spam INBOUND Policy Log level 7 ######################################################
 params = @{
     QuarantineRetentionPeriod = 30
     SpamAction = "MoveToJmf"
@@ -156,12 +163,16 @@ if ($AntiSpamRules.Count -gt 0) {
         $AntiSpamPolicy = Get-HostedContentFilterPolicy -Identity @policyName
         Set-HostedContentFilterPolicy -Identity $policyName @params
         Write-Output "Anti Spam Filter Policy '$policyName' updated successfully" 
+        logMe -level 7 -message 'Inbound Spam policy updated: $policyName'
+        logMe -level 7 -settings "Settings: $params"
     }
 } else {
     #Create a new Anti-Spam policy
-    $policyName = "ispire Standard Spam Policy"
+    $policyName = "$MSP Standard Spam Policy"
     New-HostedContentFilterPolicy -Name $policyName $params
     New-HosteddContentFilterRule -Name "$policyName - All Domains" -HostedContentFilterPolicy $policyName -RecipientDomainIs $domains
+    logMe -level 7 -message 'Inbound Spam policy created: $policyName'
+    logMe -level 7 -settings "Settings: $params"
     }
 
 # Anti Spam OUTBOUND Policy ##################################3
