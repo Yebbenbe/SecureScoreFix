@@ -1,14 +1,39 @@
+[main]: SecureScoreLowImpact.ps1
+[author]: Yebbenbe
+[verified_date]: "March 4 2025"
+[mods]: "fileLog.psm1, DomainSelector.psm1"
+[WIP]: "status: WIP"
+[comp]: "status: Completed"
+
 # SecureScoreFix
-Scripts for quickly addressing SecureScore. A WIP
+Scripts for quickly addressing SecureScore. [WIP]
 
 - Use with Defender P1 atleast.
-- Intended to be used by normal humans. This is ALSO a WIP. 
+- Intended to be used by normal humans who don't understand this stuff, but know their score is too low. This is ALSO a [WIP]
+- If you want to use this, but can't because it's not finished- click the "Issues" tab and input an issue, and we can talk.
 - This may break any special configuration you have for certain emails. Working on enabling exclusions.
 - Currently, enables MailTips, Disables OWA External Providers, Configures SafeLinks, SafeAttachments, AntiMalware, AntiPhish, AntiSpam policies as per suggestions. Configures Quarantine to notify users every day, allow release request. 
 - **Release Request notifications cannot be automated by this. That must be conf'd manually, under Defender > Email & Collaboration > Rules & Policies > Alert Policies: User has requested to release a Quarantined Item.** This is because the Set-ProtectionAlert cmdlet cannot edit defaults, and the New-ProtectionAlert cmdlet won't work without Enterprise.
-- Does not touch user accounts. All current configurations will be seen within Defender > Email & Collaboration > Rules& Policies
+- Does not touch user accounts. All current configurations will be seen within Defender > Email & Collaboration > Rules& Policie
+
+### Tentative Instructions
+- This is a WIP, and will not work as desired.
+- Download [main]
+- download [mods]
+- Ensure these are in the same folder on your machine. If on Windows, it is likely C:\Users\*you*\Downloads
+- Open Powershell in that directory
+- - open cmd, input `cd %USERPROFILE%\Downloads`
+  - input `pwsh ./[main]`
+  - Follow the prompts.
+ - Log will be found in the same folder named "yourTenant-log.txt"
+ ###### considerations
+ - This will force Microsoft recommended values to various email-related policies.
+ - This includes blocking any automatic forwarding to external email addresses, which can have an impact on anything you have configured to automatically forward (like ticketing)
+ - This will also start quarantining messages. Some WILL be false flags, as it uses Microsoft AI components... Some detections are configured to go to Quarantine, some are configured to go to your Junk folder.
+ - It will create shortcuts on your desktop to Defender Quarantine, Impersonation Insight, Spoofing Insight and Spam Insight pages. The Quarantine is where messages can be released. The Insight Pages gives you info on how much is getting flagged by various tools. You can use this to tweak policies - but this may cost you points.
 
 ## SecureScoreLowImpact.ps1 (referred to as MAIN)
+[WIP]
 - began as a Fix to limit the amount of quarantining
 - has evolved past that, to set a quarantine policy allowing users to request item releases.
 - checks for existing rules (policy + domain combinations) and updates whatever exists with proper rules. Assigns remaining input domains to it.
@@ -20,16 +45,18 @@ Status: SafeLinks, SafeAttachments, MalwareFilter, Spam Filter (HostedContentFil
 - [ ] Modularize the different elements, this is nauseating.
 
 ### DomainSelector.psm1 
-- script for domain selection
+[comp]
+- script for domain selection for [main]
 - Outputs all Accepted Domains, prompts user to input domains to work with.
 - Input one at a time. Input "all" to affect all, "next" to move forward.
 - **Recommended: When you are prompted, input any domains with users attached.**
-- Must be downloaded with Main, kept in same folder
+- Must be downloaded with [main], kept in same folder
 - does not need to be run manually
 
 ### fileLog.psm1
-- simple logger for Main
-- Must be downloaded with Main, kept in same folder
+[comp]
+- simple logger for [main]
+- Must be downloaded with [main], kept in same folder
 - does not need to be ru manually
 - Logs can be found in the same folder, as "YourTenant - log.txt"
  
