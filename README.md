@@ -1,11 +1,12 @@
 # SecureScoreFix
 Scripts for quickly addressing SecureScore. A WIP
--Use with Defender P1 atleast.
--Intended to be used by normal humans. This is ALSO a WIP. 
--This may break any special configuration you have for certain emails. Working on enabling exclusions.
--Currently, enables MailTips, Disables OWA External Providers, Configures SafeLinks, SafeAttachments, AntiMalware, AntiPhish, AntiSpam policies as per suggestions. Configures Quarantine to notify users every day, allow release request. 
--**Release Request notifications cannot be automated by this. That must be conf'd manually, under Defender > Email & Collaboration > Rules & Policies > Alert Policies: User has requested to release a Quarantined Item.** This is because the Set-ProtectionAlert cmdlet cannot edit defaults, and the New-ProtectionAlert cmdlet won't work without Enterprise.
--Does not touch user accounts. All current configurations will be seen within Defender > Email & Collaboration > Rules& Policies
+
+- Use with Defender P1 atleast.
+- Intended to be used by normal humans. This is ALSO a WIP. 
+- This may break any special configuration you have for certain emails. Working on enabling exclusions.
+- Currently, enables MailTips, Disables OWA External Providers, Configures SafeLinks, SafeAttachments, AntiMalware, AntiPhish, AntiSpam policies as per suggestions. Configures Quarantine to notify users every day, allow release request. 
+- **Release Request notifications cannot be automated by this. That must be conf'd manually, under Defender > Email & Collaboration > Rules & Policies > Alert Policies: User has requested to release a Quarantined Item.** This is because the Set-ProtectionAlert cmdlet cannot edit defaults, and the New-ProtectionAlert cmdlet won't work without Enterprise.
+- Does not touch user accounts. All current configurations will be seen within Defender > Email & Collaboration > Rules& Policies
 
 ## SecureScoreLowImpact.ps1 (referred to as MAIN)
 - began as a Fix to limit the amount of quarantining
