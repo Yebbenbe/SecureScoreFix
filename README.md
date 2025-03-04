@@ -3,11 +3,11 @@ AUTHOR: Yebbenbe
 LAST VERIFIED: "March 4 2025"
 REQUIRED MODS: fileLog.psm1, DomainSelector.psm1
 
-
 # SecureScoreFix
 Scripts for quickly addressing SecureScore. [WIP]
 
 - Use with Defender P1 atleast.
+- If you see [main] in this document, replace it with whatever is listed as MAIN above. This includes any code.
 - Intended to be used by normal humans who don't understand this stuff, but know their score is too low. This is ALSO a [WIP]
 - If you want to use this, but can't because it's not finished- click the "Issues" tab and input an issue, and we can talk.
 - This may break any special configuration you have for certain emails. Working on enabling exclusions.
