@@ -1,10 +1,9 @@
 # Low-impact SecureScore fixes
-<# Fixes
-
+<# Deprecating. Move to Main.ps1 for modularity
 
 #>
 Import-Module .\DomainSelector.psm1
-$logFile = Join-Path $PSScriptRoot "SecureScore_log.txt"
+Import-Module .\QuarantineSetup.psm1
 Import-Module .\fileLog.psm1
 
 $tenant = $null
@@ -15,6 +14,7 @@ $user = $env:USERNAME  # For desktop shortcuts to email filter review
 function p {Start-Sleep -Seconds 1}
 Write-Host "This script is used for non-federated MSP environments (environments with separate admin accounts). Recommendations are dated 2/21/25."; &p
 Write-Host "This version of the script will make only low-impact changes.";  &p
+. ./Variables.ps1
 $MSP = Read-Host -Prompt "Enter a company/label for policy naming. Policies will be named `"[company]`'s Standard Policy`"" 
 Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start."
 # Setup connection log entry 1
@@ -30,26 +30,7 @@ Write-Host "You will be asked what domains to apply these policies to. These may
 Write-Host "Input one at a time."; &p
 $domains = Select-Domains -availableDomains $domainsAll
 logMe -level "1" -message "Domains selected : $domains"
-<# moved to it's own module
-$domains = @()
-while ($true) {
-    $userInput = Read-Host "Enter a domain (or type 'next' to finish)"
-    if ($userInput -eq "next") {
-        break
-    }
-    # If the user types 'all', select all domains
-    if ($userInput -eq "all") {
-        $domains = $domainsAll  # Add all domains
-        Write-Host "You have selected all the domains."
-        break  # Exit loop after selecting all domains
-    }
-    if ($domainsAll -contains $userInput) {
-        $domains += $userInput
-        Write-Host "$userInput has been added."
-    } else {
-        Write-Host "Invalid domain. Please enter a valid domain from the list."
-    }
-} #>
+
 
 # Enables Mailtips Log Entry 2
 Set-OrganizationConfig -MailTipsAllTipsEnabled $true -MailTipsExternalRecipientsTipsEnabled $true -MailTipsGroupMetricsEnabled $true -MailTipsLargeAudienceThreshold '25'; 
