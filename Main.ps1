@@ -1,64 +1,94 @@
 ﻿<#  Main.ps1  ######################################################
-The main script. Run this, not others. (WIP)
+The main script, a WIP
+Impoves on SecureScoreFix.ps1 and SSlowImpact.ps1 by modularizing different calls
+Variables for configuratio are all stored in Variables.ps1 to allow for easy review.
 Goal: have this execute all changes as moddules/functions.
 Goal: Have external variables file that includes all params, for easy tweaking..
-
+Goal: Notes on all variables in Variables.ps1, so people can understand what they do.
 
 
 
 ####################################################################>
-Import-Module .\DomainSelector.psm1
+Import-Module .\DomainSelection.psm1
 Import-Module .\QuarantineSetup.psm1
 $logFile = Join-Path $PSScriptRoot "SecureScore_log.txt"
 Import-Module .\fileLog.psm1
 function p {Start-Sleep -Seconds 1}
  
-# $tenant = $null
-# $MSP = $null
+$failedProcesses = @()
 $domains = @()
 $policyName = $null
 $user = $env:USERNAME
 
-Write-Host "This script is used for non-federated MSP environments (environments with separate admin accounts). Recommendations are dated 2/21/25."; &p
-Write-Host "For items that get quarantined, users will get a daily notification and will be able to request the item's release.";  &p
+Write-Host "This script will apply Secure Score recommendations to tenant. Recommendations are dated 2/21/25."; &p
 $MSP = Read-Host -Prompt "Enter a company/label for policy naming. Policies will be named `"[company]`'s Standard Policy`""
-$qSender = Read-Host -Prompt "Specify an email to send quarantine notices to users FROM. This must be an existing internal sender. If input is blank, will default to 'quarantine@messaging.microsoft.com.'"
-$qAdmin = Read-Host -Prompt "Specify an email to send Quarantine Release Requests TO. This can be configured with a shared mailbox or ticketing endpoint."
-Read-Host -Prompt "You will be asked to login to the tenant admin. Press enter to start."
-logMe -level "info" -message "Launching login window."
-# Setup connection log entry 1
-Connect-ExchangeOnline;
+# following param is only available on Global policy. Can be done by PS, but low priority.
+#$qSender = Read-Host -Prompt "Specify an email to send quarantine notices to users FROM. This must be an existing internal sender. If input is blank, will default to 'quarantine@messaging.microsoft.com.'"
+$qAdmin = Read-Host -Prompt "Specify an email to send Quarantine Release Requests TO. 
+This can be configured with a shared mailbox or ticketing endpoint."
+$upn = Read-Host -Prompt "Enter your 365 admin username. Ex: john@company.com  
+If you login to Windows with this, you will not need to input a password.
+Otherwise, you will be prompted to authenticate via a browser window TWICE - Once for ExchangeOnlineManagement and once for IPPS Session (for alert config). `
+Input login now"
+
+# Setup connection log entry
+try { 
+    Connect-ExchangeOnline -userprincipalname $upn
+    Write-Host "Connected to ExchangeOnline Successfully. Attempting connection to IPPSsession."
+    try {
+        Connect-IPPSSession -userprincipalname $upn
+        Write-Host "Connected to IPPSsession successfully. A log file will be created on the desktop."
+        } 
+        catch {
+        Write-Host "Connection to Security and Compliance Center not authorized."
+        }
+    } 
+    catch {
+    write-Host "Connection to ExchangeOnline not authorized."
+}
+
 $tenant = (Get-OrganizationConfig).Identity
 $domainsAll = (Get-AcceptedDomain).DomainName
-$logFile = Join-Path $PSScriptRoot "$tenant-log.txt"
-    $global:logFile = $logFile
-    logMe -level "Start" -message "Connected to $tenant"
+$desktopPath = [System.Environment]::GetFolderPath('Desktop')
+$logFile = Join-Path $desktopPath "SecureScore_log.txt"
+$global:logFile = $logFile
+    logMe -level "Start" -message "Connected to $tenant with user $upn"
 Write-Host "You have connected to tenant $tenant, with the following domains: $($domainsAll -join ', ')"; &p
 Write-Host "Please input domains to target. Type the domain from the list above, and press enter to include it."; &p
-    $domains = Select-Domains -availableDomains $domainsAll
+$domains = Select-Domains -availableDomains $domainsAll
     logMe -level "Info" -message "Domains selected : $domains"
+
+# pull variables and construct hash tables
 Write-Host "Getting params from Variables.ps1"
 try {
     . ./Variables.ps1
     logMe -level "Info" -message "Successfully imported Variables.ps1"
 } catch {
-    logMe -level "Error" -message "Error importing Variables.ps1: $_"
+    logMe -level "ErrorMain" -Write $true -message "Error importing Variables.ps1: $_"
 }
 
+Write-Host "Finished setting up parameters. Applying configuration now."; &p;  &p;
+# set MailTips 
 try {
     # Attempt to run the Set-OrganizationConfig command
     Set-OrganizationConfig @paramsMailTips 
-    logMe -level "Info" -message 'Mailtips enabled'
+    logMe -level "Info" -write $true -message 'Mailtips enabled'
 } catch { 
-    logMe -level "Error" -message "Error enabling MailTips: $_"
+    logMe -level "ErrorMain" -message "Error enabling MailTips: $_"
+    $failedProcesses += "MailTips"
     }
 
 
-
-
-
-
-
-# Prompt for $msp, $tenant, $domains, BEFORE immporting Variables.
-# This is because althought $MSP from Variables will update
-# the hash table that uses $MSP will not.
+# Set Quarantine and Alert policy using quarantineSetup.psm1
+try {
+    QuarantineSetup -paramsQuarantine $paramsQuarantine
+    if ($qPolicy) {
+    logMe -level "Info" -write $true -Message "quarantine and Alerts set up."
+    } else {
+    logMe -level "Main error" -Message "QuarantineSetup successful, but Main did not receive new quarantine policy"
+    $failedProcesses += "Quarantine Setup"
+    }
+} catch {
+    logMe -level "Main error" -message "Failed calling QuarantineSetup: $_"
+    $failedProcesses += "Quarantine setup"
+}

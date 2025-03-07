@@ -8,28 +8,28 @@ function Select-Domains {
     )
     $domains = @() #array to hold results
     # loop to select
-    while ($true) 
-        Write-Host "Domains selected: $domains"
-        $userInput = Read-Host "Input a domain, 'all' for all, or 'next' when done."
+    while ($true) {
+        # Write-Host "Domains selected: $domains"
+        $userInput = Read-Host "Input a domain from the list, 'all' for all, or 'next' when done."
 
         if ($userInput -eq "next" -and $domains.Count -eq 0) {
             Write-Host "No domains selected. Please input at least one domain or type 'all' to select all."
         } 
             
         # grabs all domains from $domainsAll
-        if ($userInput -eq "all") {
+        elseif ($userInput -eq "all") {
             $domains = $availableDomains
             Write-Host "You have selected all the domains: $domains"
             break #end loop
         }
 
         # add input matching all domains to selected domains
-        if ($availableDomains -contains $userInput) {
+        elseif ($availableDomains -contains $userInput) {
             $domains += $userInput
             Write-Host "$userInput has been added. Input another domain, or 'next' to continue. Selected domains: $domains"
         } 
         
-        if ($userInput -eq "next") {
+        elseif ($userInput -eq "next") {
             break  # end loop
         } else {
             Write-Host "Invalid domain. Please enter domains one by one."

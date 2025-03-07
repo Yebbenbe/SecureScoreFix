@@ -5,24 +5,24 @@
 
 
 $paramsQuarantine = @{
-Name = "$MSP Quarantine Release policy"
+Name = "$MSP Quarantine Release policy" # $MSP is from Main.ps1, do not change
 EndUserQuarantinePermissionsValue = 139
 AdminDisplayName = 'Allows users to see previews and request release, sends notif to user'
 IncludeMessagesFromBlockedSenderAddress = $false
 ESNEnabled = $true
 QuarantineRetentionDays = 30
-EndUserSpamNotificationCustomFromAddress = $qSender
+# EndUserSpamNotificationCustomFromAddress = $qSender #can only be set on global.
 EndUserSpamNotificationFrequency = "1.00:00:00"
 }
 
 $paramsAlert = @{
-AggregationType = None
-Operation = QuarantineRequestReleaseMessage
-Category = ThreatManagement
-name = "$MSP Release Request Notifications"
-NotifyUser = $qAdmin
-ThreatType = Activity
-Description = "Created by script. Notifies $admin when someone has requested Quarantine Release"
+AggregationType = "None"
+Operation = "QuarantineRequestReleaseMessage"
+Category = "ThreatManagement"
+name = "$MSP Release Request Notifications"  # $MSP from Main, do not change.
+NotifyUser = $qAdmin #from Main, do not change.
+ThreatType = "Activity"
+Description = "Created by script. Notifies $qAdmin when someone has requested Quarantine Release"
 }
 
 $paramsSafeLinks = @{  

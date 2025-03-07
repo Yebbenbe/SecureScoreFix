@@ -1,7 +1,8 @@
 function logMe {
     param(
         [Parameter(ValueFromPipeline=$true)] [string]$message,
-        [string]$level = "Info")
+        [string]$level = "Info",
+        [bool]$write = $false)
 
     # Format the timestamp
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
@@ -24,4 +25,5 @@ function logMe {
     # log it
     $logMessage = "$timestamp [$level] - $formattedMessage"
     $logMessage | Out-File -FilePath $global:logFile -Append
+    if ($write) {Write-Host $logMessage}
 }
