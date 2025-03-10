@@ -5,7 +5,7 @@ Variables for configuratio are all stored in Variables.ps1 to allow for easy rev
 Goal: have this execute all changes as moddules/functions.
 Goal: Have external variables file that includes all params, for easy tweaking..
 Goal: Notes on all variables in Variables.ps1, so people can understand what they do.
-
+Goal: For Rule+Policy combo's,  dynamically generate the cmdles from the function name, like was done in Main to the overall Fn's
 
 
 ####################################################################>
