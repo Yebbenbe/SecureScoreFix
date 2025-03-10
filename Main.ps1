@@ -81,16 +81,17 @@ try {
 Write-Host "Finished setting up parameters. Applying configuration now."; &p;  &p;
 
 foreach ($function in $toFix) {
+# need to call function, pass paramHash to functionParam
     # Dynamically build the param hashtable name
     $paramName = $function + "Params" # generates the name of the param hash table
     try {
-        $functionParams = (Get-Variable -Name $paramName -ErrorAction Stop).Value #get the actual hashtable 
+        $functionParams = (Get-Variable -Name $paramName -ErrorAction Stop).Value #get the actual hashtable - simplly a string
         if ($functionParams -eq $null) {
             throw "No params found for $function"
         }
         # dynamically build the parameter name and call the function
-        $param = @{ $paramName = $functionParams }  # holy shit what a pain
-        & $function @param
+        $param = @{ $paramName = $functionParams }  # equivalent to -$paramName = $functionParams, where $functionParams is the hashtable, and $paramName is the name of the param in the function.
+        & $function @param #call that function, passing the hashtable as the single parameter
         logMe -level "info" -message "$function executed Successfully"
     } catch {
     logMe -level "ErrorMain" -message "Error executing $function : $_" 
