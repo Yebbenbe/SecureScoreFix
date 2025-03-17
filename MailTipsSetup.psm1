@@ -1,4 +1,5 @@
 ﻿#otherConfig.psm1
+#deprecated, moved to ThreatPolicies.psm1
 
 function MailTips {
     param(

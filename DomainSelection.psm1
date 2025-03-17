@@ -6,7 +6,6 @@ function Select-Domains {
     param(
         [array]$availableDomains  #takes the array of domains
     )
-    $domains = @() #array to hold results
     # loop to select
     while ($true) {
         # Write-Host "Domains selected: $domains"
@@ -26,7 +25,7 @@ function Select-Domains {
         # add input matching all domains to selected domains
         elseif ($availableDomains -contains $userInput) {
             $domains += $userInput
-            Write-Host "$userInput has been added. Input another domain, or 'next' to continue. Selected domains: $domains"
+            Write-Host "$userInput has been added. Input another domain, or 'next' to continue. Selected domains: $domains `n"
         } 
         
         elseif ($userInput -eq "next") {

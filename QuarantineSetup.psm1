@@ -8,7 +8,7 @@ Configures release requests to go to desired email.
 
 function Quarantine {
     param(
-        [hashtable][ValidateNotNull()]$QuarantineParams,
+        [hashtable][ValidateNotNull()]$QuarantineParams
         )
 
         if (-not $QuarantineParams) {
@@ -28,8 +28,8 @@ function Quarantine {
 }
 
 function Alert {
-    param [hashtable][ValidateNotNull()]$AlertParams
-    }
+    param ([hashtable][ValidateNotNull()]$AlertParams)
+    
         # Create the Protection Alert
         if (-not $alertParams) {
             logMe -level "Quarantinesetup" -message "QuarantineSetup did not receive any AlertParams"
@@ -41,9 +41,9 @@ function Alert {
     } catch {
         logMe -level "QuarantineSetup" -message "Error creating Protection Alert: $_"
     }
-return $qPolicy
+
     
 
 }
 
-
+Export-ModuleMember -Function Quarantine, Alert # required for Alert to  be available

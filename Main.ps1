@@ -10,40 +10,22 @@ Goal: For Rule+Policy combo's,  dynamically generate the cmdles from the functio
 
 ####################################################################>
 Import-Module .\DomainSelection.psm1
-Import-Module .\QuarantineSetup.psm1
-Import-Module .\MalwareFilterSetup.psm1
 Import-Module .\fileLog.psm1
-Import-Module .\MailTipsSetup.psm1
-Import-Module .\SafeLinksSetup.psm1
+Import-Module .\ThreatPolicies.psm1
+
 function p {Start-Sleep -Seconds 1}
- 
-$domains = @()
-$toFix = @(
-    "MailTips",
-    "Quarantine",
-    "Alert",
-    "SafeLinks",
-    "MalwareFilter"
-    #"SafeAttachments",
-    #"InboundSpam",
-    #"OutboundSpam"
-)
 
 # Set up log file
 $desktopPath = [System.Environment]::GetFolderPath('Desktop')
 $logFile = Join-Path $desktopPath "SecureScore_log.txt"
 $global:logFile = $logFile
-$failedProcesses = @()
+
 
 # prompt for requisite inputs
 Write-Host "This script will apply Secure Score recommendations to tenant. Recommendations are dated 2/21/25."; &p
 $MSP = Read-Host -Prompt "Enter a company/label for policy naming. Policies will be named `"[company]`'s Standard Policy`""
-$qAdmin = Read-Host -Prompt "Specify an email to send Quarantine Release Requests TO. 
-This can be configured with a shared mailbox or ticketing endpoint."
-$upn = Read-Host -Prompt "Enter your 365 admin username. Ex: john@company.com  
-If you login to Windows with this, you will not need to input a password.
-Otherwise, you will be prompted to authenticate via a browser window TWICE - Once for ExchangeOnlineManagement and once for IPPS Session (for alert config). `
-Input login now"
+$qAdmin = Read-Host -Prompt "`n Specify an email to send Quarantine Release Requests TO. `n This can be configured with a shared mailbox or ticketing endpoint."
+$upn = Read-Host -Prompt "`n Enter your 365 admin username. Ex: john@company.com `n If you login to Windows with this, you will not need to input a password. Input login now."
 
 # Setup connection log entry
 try { 
@@ -64,13 +46,13 @@ try {
 # return tenant and prompt for domains
 $tenant = (Get-OrganizationConfig).Identity
 $domainsAll = (Get-AcceptedDomain).DomainName
-Write-Host "You have connected to tenant $tenant, with the following domains: $($domainsAll -join ', ')"; &p
-Write-Host "Please input domains to target. Type the domain from the list above, and press enter to include it."; &p
+Write-Host "_______________________ `n $($domainsAll -join ', ')"; &p
+Write-Host "You have connected to $tenant, with the above domains associated. Next, you will input the domains you would like to configure. Recommended: all" ; &p
 $domains = Select-Domains -availableDomains $domainsAll
     logMe -level "Info" -message "Domains selected : $domains"
 
 # pull variables and construct hash tables
-Write-Host "Getting params from Variables.ps1"
+Write-Host "_______________________ `nGetting params from Variables.ps1"
 try {
     . ./Variables.ps1
     logMe -level "Info" -message "Successfully imported Variables.ps1"
@@ -85,9 +67,10 @@ foreach ($function in $toFix) {
     # Dynamically build the param hashtable name
     $paramName = $function + "Params" # generates the name of the param hash table
     try {
-        $functionParams = (Get-Variable -Name $paramName -ErrorAction Stop).Value #get the actual hashtable - simplly a string
+        $functionParams = (Get-Variable -Name $paramName -ErrorAction Stop).Value #get the actual hashtable - simply a string
         if ($functionParams -eq $null) {
-            throw "No params found for $function"
+            logMe -level "ErrorMain" -message "Error generating $function param - param is null." # This checks that the non-null hash table isn't EMPTY, rather than $null
+            return
         }
         # dynamically build the parameter name and call the function
         $param = @{ $paramName = $functionParams }  # equivalent to -$paramName = $functionParams, where $functionParams is the hashtable, and $paramName is the name of the param in the function.
@@ -96,8 +79,8 @@ foreach ($function in $toFix) {
     } catch {
     logMe -level "ErrorMain" -message "Error executing $function : $_" 
     $failedProcesses += $function;
-
     }
+    Read-Host -Prompt "$function config finished. Press Enter to continue."
 }
 
 # After all functions are executed, check failed processes
@@ -106,4 +89,3 @@ if ($failedProcesses.Count -gt 0) {
 } else {
     logMe -level "Info" -message "All processes completed successfully."
 }
-
