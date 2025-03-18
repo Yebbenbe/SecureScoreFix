@@ -3,10 +3,10 @@ A tool for quickly addressing low Secure Score. Designed with non-techs in mind.
 
 - requires Defender P1
 - you will be asked for the following info:
-  Company name: used for naming policies
-  Email: this is where Quarantine Release Requests and Internal Spam Sender notifications will go to
-  Username: Your 365 username. If this is what you login to your PC with, you will not need to input a password. Otherwise, you will.
-  Domains: the domains you want to apply these rules to. Input **all** to apply to all domains on the tenant. This is recommended.
+  - Company name: used for naming policies
+  - Email: this is where Quarantine Release Requests and Internal Spam Sender notifications will go to
+  - Username: Your 365 username. If this is what you login to your PC with, you will not need to input a password. Otherwise, you will.
+  - Domains: the domains you want to apply these rules to. Input **all** to apply to all domains on the tenant. This is recommended.
    
 ### Tentative Instructions
 1. Download Main.ps1, DomainSelection.psm1, fileLog.psm1, Variables.ps1, ThreatPolicies.psm1 to your Downloads folder.
