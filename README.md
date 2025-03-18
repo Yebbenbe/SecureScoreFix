@@ -10,14 +10,13 @@ A tool for quickly addressing low Secure Score. Designed with non-techs in mind.
    
 ### Tentative Instructions
 1. Download Main.ps1, DomainSelection.psm1, fileLog.psm1, Variables.ps1, ThreatPolicies.psm1 to your Downloads folder.
-2. If you have the ExchangeOnlineManagement module for PowerShell, skip to 4.
-- Otherwise, open PowerShell (the command line, not the ISE) as an admin. (Right-click + run as administrator)
+2. If you have the ExchangeOnlineManagement module for PowerShell, skip to 4. Otherwise, open PowerShell (the command line, not the ISE) as an admin. (Right-click + run as administrator)
 3. Run `Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser -Confirm:$false`
 4. open cmd, input `cd %USERPROFILE%\Downloads`
 5. input `pwsh ./[main]`
-6. Follow the prompts.
-- Log will be found on your desktop as 'SecureScore_log.txt'
-- 
+6. Follow the prompts. Log will be found on your desktop as 'SecureScore_log.txt'
+7. If you get an error about enabling customization, input `Enable-OrganizationCustomization` and try again.
+
  ### Considerations
  - This will force Microsoft recommended values to various email-related policies.
  - This includes blocking any automatic forwarding to external email addresses, which can have an impact on anything you have configured to automatically forward (like ticketing)
