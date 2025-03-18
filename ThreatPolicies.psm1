@@ -150,7 +150,7 @@ function AntiPhish {
     try {
         New-AntiPhishPolicy @AntiPhishParams
         logMe -level "Info" -message "Anti Phishing Policy '$policyName' created successfully. Creating rule." 
-        New-AntiPhishRule -Name "$policyName - Selected Domains" -MalwareFilterPolicy $policyName -ReceipientDomainIs $domains
+        New-AntiPhishRule -Name "$policyName - Selected Domains" -MalwareFilterPolicy $policyName -RecipientDomainIs $domains
         logMe -level "Info" -message "Anti Phishing Rule policy paired with domains."
         } catch {
             logMe -level "AntiPhishSetup" -message "Error in AntiPhish setup: $_"
