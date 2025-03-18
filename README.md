@@ -13,7 +13,7 @@ A tool for quickly addressing low Secure Score. Designed with non-techs in mind.
 2. If you have the ExchangeOnlineManagement module for PowerShell, skip to 4. Otherwise, open PowerShell (the command line, not the ISE) as an admin. (Right-click + run as administrator)
 3. Run `Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser -Confirm:$false`
 4. open cmd, input `cd %USERPROFILE%\Downloads`
-5. input `pwsh ./[main]`
+5. input `pwsh ./Main.ps1`
 6. Follow the prompts. Log will be found on your desktop as 'SecureScore_log.txt'
 7. If you get an error about enabling customization, input `Enable-OrganizationCustomization` and try again.
 
